@@ -1,30 +1,38 @@
 #!/usr/bin/php
 <?php 
 
+//set potential CLI flag directives
 $options = getopt("u:p:h:n", ["file:","create_table","dry_run","help"]);
 
+//determine the file path first
 $fileName = $options['file'] ?? "users.csv"; 
 
-
+//if a help flag was set, run help function and stop script
 if(isset($options['help'])) {
     help();
     die(0); 
 }
+//if dry run flag was set, validate the input (dry_run) and stop script
 if(isset($options['dry_run'])) {
     input_validation();
     die(0); 
 }
-
+//if create_table flag was set, simply create the table and stop script
 if(isset($options['create_table'])) {
     create_table();
     die(0); 
 }
 
-
+//run query functions if no flags, or ones that are above are not used. 
 create_table(); 
 insert_values();  
 
+/**
+ * Help function
+ * Run the formatted echo, that has all flag directive info (copied from test document)
+ */
 function help(){
+    
     echo "
     • --file [csv file name] - this is the name of the CSV to be parsed
     • --create_table - this will cause the MySQL users table to be built (and no further action will be taken)
@@ -37,7 +45,10 @@ function help(){
     • --help - which will output the above list of directives with details.\n"; 
 }
 
-
+/**
+ * Calls validation functions and assigns csv values to workable array
+ * @returns valuesArr - An array to be imploded and added to insert query after being validated and sanitized
+ */
 function input_validation(){
     global $fileName; 
   
@@ -75,24 +86,31 @@ function input_validation(){
     return $valuesArr;  
 }
 
+/**
+ * inserts the validated and sanitized values into the db and handles any errors
+ */
 function insert_values(){
+    //define initial query
     $insert_query = "INSERT INTO users (name, surname, email) VALUES";
 
+    //validate the data inputted from csv and assign to a var
     $data = input_validation(); 
 
+    //data is formatted to allow for implode and then append to create the insert query
     $insert_query .= implode($data); 
 
-    
+    //removes the final , with a ; to ensure syntatically correct query
     $insert_query[strlen($insert_query)-1] = ';'; 
   
-
+    //create the connection and end the script if theres an error
     $con = mysqli_connect('localhost','root','', 'task_db'); 
 
     if($con->connect_error) {
         die("Connection failed: ".$con->connect_error );
     }
-     //try the query and output if success or not
-     try {
+
+    //try the query and output if success or not
+    try {
         $success = $con->query($insert_query); 
         if($success) {
             echo "\nValues were inserted successfully";
@@ -106,22 +124,26 @@ function insert_values(){
     //close the connection
     $con->close(); 
 }
-
+/**
+ * Creates the sql table and handles any errors
+ */
 function create_table() {
-    //Check DB variables are properly set
+    //global options to allow scope to reach into sql connection
     global $options; 
 
+    //if there was variables set, get them. use coalesence operator to set likely variables
     $username = $options['u'] ?? "root";
     $password = $options['p'] ?? "";
     $host = $options['h'] ?? "localhost";  
     $db_name = $options['n'] ?? "task_db";  
     
+    //create the connection and report any error whilst ending script
     $con = mysqli_connect($host, $username, $password, $db_name); 
     if($con->connect_error) {
         die("Connection failed: ".$con->connect_error );
     }
     
-    //remove previous table and create new one
+    //define the table with sql create query
     $create_query = " CREATE TABLE IF NOT EXISTS users(
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
@@ -129,11 +151,11 @@ function create_table() {
         email VARCHAR(128) NOT NULL UNIQUE
     );";
 
+    //drop table each time for testing/rebuild purposes 
     $drop_query = "DROP TABLE IF EXISTS users;";
-    //drop table each time for testing purposes 
     $con->query($drop_query); 
 
-    //try the query and output if success or not
+    //try the query and output if success or not. catches errors
     try {
         $success = $con->query($create_query); 
         if($success) {
@@ -150,6 +172,10 @@ function create_table() {
     $con->close(); 
 }
 
+/**
+ * Removes invalid characters and capitlizes on the first letter
+ * @param name - Name or Surname to be validated/formatted correctly
+ */
 function name_check($name) {
     $name = preg_replace('/\PL/u', '', $name); 
     $name = strtolower($name);
@@ -157,6 +183,10 @@ function name_check($name) {
     return $name; 
 }
 
+/**
+ * Removes invalid characters, whitespace, or hidden characters. Formats in lowercase
+ * @param email - email to be validated/formatted correctly
+ */
 function email_check($email) {
     $email = filter_var($email, FILTER_SANITIZE_EMAIL);
     $email = filter_var($email, FILTER_VALIDATE_EMAIL); 
