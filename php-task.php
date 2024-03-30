@@ -1,35 +1,50 @@
 #!/usr/bin/php
 <?php 
 
-
-$values = []; 
-
 $options = getopt("u:p:h", ["file","create_table","dry_run","help"]);
 
-$username = $options['u'];
+$username = $options['u'] ?? "root";
 $password = $options['p'] ?? "";
-$host = $options['h']; 
+$host = $options['h'] ?? "localhost";  
 
+#main(); 
 
-function main(){
+input_validation(); 
+
+function input_validation(){
     $file = fopen("users.csv","r");
- 
+
+    fgetcsv($file);
+
     while (($data = fgetcsv($file)) !== FALSE)
     {
-        $x = [name_check($data[0]), name_check($data[1]), email_check($data[2])];
-        $values[] = $x; 
+        $name = name_check($data[0]);
+        $surname = name_check($data[1]);
+        $x = $data[2]; 
+        $email =  email_check($x);
+        if($email == '') { 
+            echo fwrite(STDOUT, "Error: This is not a valid email ".$data[2]);
+            die(); 
+            $email = str_replace("'","''",$email); 
+            $valuesArr[] = "('$name','$surname','$email'),"; 
+        }
     }
-    
+    $findDuplicate = array_diff_assoc( 
+        $data,  
+        array_unique($data) 
+    ); 
+
+    if($findDuplicate) {
+        echo fwrite(STDOUT, "Error: There are duplicate emails within the spreadsheet".$findDuplicate);
+        die(1); 
+    }
+    return $data;  
 }
+
 
 function create_table() {
     //Check DB variables are properly set
-    if(isset($username) && isset($password) && isset($host)) {
-        echo 'success'; 
-    } else {
-        echo fwrite(STDOUT, "Error: missing required values for db \nPlease enter the required values using the specified directives \nRun with --help flag for instructions\n");
-        exit(1);
-    }
+    
 
     //create the connection and check for error
     $con = mysqli_connect('localhost','root','', 'task_db'); 
@@ -38,13 +53,16 @@ function create_table() {
     }
     
     //remove previous table and create new one
-    $create_query = "DROP TABLE IF EXISTS users;
-    CREATE TABLE IF NOT EXISTS users(
+    $create_query = " CREATE TABLE IF NOT EXISTS users(
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         surname VARCHAR(50) NOT NULL,
         email VARCHAR(128) NOT NULL UNIQUE
     );";
+
+    $drop_query = "DROP TABLE IF EXISTS users;";
+    //drop table each time for testing purposes 
+    $con->query($drop_query); 
 
     //try the query and output if success or not
     try {
@@ -62,7 +80,15 @@ function create_table() {
     //close the connection
     $con->close(); 
 }
-
+function variable_check(){
+    if(isset($username) && isset($password) && isset($host)) {
+        echo 'success'; 
+        return true; 
+    } else {
+        echo fwrite(STDOUT, "Error: missing required values for db \nPlease enter the required values using the specified directives \nRun with --help flag for instructions\n");
+        return false; 
+    }
+}
 function name_check($name) {
     $name = preg_replace('/\PL/u', '', $name); 
     $name = strtolower($name);
