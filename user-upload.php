@@ -149,15 +149,7 @@ function create_table() {
     //close the connection
     $con->close(); 
 }
-function variable_check(){
-    if(isset($username) && isset($password) && isset($host)) {
-        echo 'success'; 
-        return true; 
-    } else {
-        echo fwrite(STDOUT, "Error: missing required values for db \nPlease enter the required values using the specified directives \nRun with --help flag for instructions\n");
-        return false; 
-    }
-}
+
 function name_check($name) {
     $name = preg_replace('/\PL/u', '', $name); 
     $name = strtolower($name);
