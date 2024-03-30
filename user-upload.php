@@ -1,17 +1,25 @@
 #!/usr/bin/php
 <?php 
 
-$options = getopt("u:p:h", ["file","create_table","dry_run","help"]);
+$options = getopt("u:p:h:n", ["file:","create_table","dry_run","help"]);
 
-$username = $options['u'] ?? "root";
-$password = $options['p'] ?? "";
-$host = $options['h'] ?? "localhost";  
 $fileName = $options['file'] ?? "users.csv"; 
+
 
 if(isset($options['help'])) {
     help();
     die(0); 
 }
+if(isset($options['dry_run'])) {
+    input_validation();
+    die(0); 
+}
+
+if(isset($options['create_table'])) {
+    create_table();
+    die(0); 
+}
+
 
 create_table(); 
 insert_values();  
@@ -30,8 +38,10 @@ function help(){
 
 
 function input_validation(){
-    
-    $file = fopen("users.csv","r");
+    global $fileName; 
+  
+    $file = fopen($fileName,"r");
+
     //skip header row 
     fgetcsv($file);
 
@@ -84,7 +94,7 @@ function insert_values(){
      try {
         $success = $con->query($insert_query); 
         if($success) {
-            echo 'Values were inserted successfully';
+            echo "\nValues were inserted successfully";
         } else {
             echo "Error creating table: ". $con->error; 
         }
@@ -98,10 +108,14 @@ function insert_values(){
 
 function create_table() {
     //Check DB variables are properly set
-    
+    global $options; 
 
-    //create the connection and check for error
-    $con = mysqli_connect('localhost','root','', 'task_db'); 
+    $username = $options['u'] ?? "root";
+    $password = $options['p'] ?? "";
+    $host = $options['h'] ?? "localhost";  
+    $db_name = $options['n'] ?? "task_db";  
+    
+    $con = mysqli_connect($host, $username, $password, $db_name); 
     if($con->connect_error) {
         die("Connection failed: ".$con->connect_error );
     }
@@ -122,7 +136,7 @@ function create_table() {
     try {
         $success = $con->query($create_query); 
         if($success) {
-            echo 'Table users was created successfully';
+            echo "\nTable users was created successfully";
         } else {
             echo "Error creating table: ". $con->error; 
         }
