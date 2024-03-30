@@ -40,7 +40,39 @@ function input_validation(){
     }
     return $data;  
 }
+function insert_values(){
+    $insert_query = "INSERT INTO users (name, surname, email) VALUES";
 
+    $data = input_validation(); 
+
+    $insert_query .= implode($data); 
+
+    
+    $insert_query[strlen($insert_query)-1] = ';'; 
+  
+    $con = mysqli_connect('localhost','root','', 'task_db'); 
+
+    if($con->connect_error) {
+        die("Connection failed: ".$con->connect_error );
+    }
+     
+
+     //try the query and output if success or not
+     try {
+        $success = $con->query($insert_query); 
+        if($success) {
+            echo 'Values were inserted successfully';
+        } else {
+            echo "Error creating table: ". $con->error; 
+        }
+    } //catch unforeseen errors
+    catch (Exception $e) {
+        echo "Error : ". $e; 
+    }
+
+    //close the connection
+    $con->close(); 
+}
 
 function create_table() {
     //Check DB variables are properly set
