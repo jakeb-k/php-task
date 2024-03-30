@@ -5,7 +5,7 @@
 2. MySQL or XAMPP (MariaDB) 
 
 #### Instructions
-1. Download repo whether zipped and unpacked, or use `git clone repo_name https://github.com/jakeb-k/php-task.git`
+1. Download repo whether zipped and unpacked, or use `git clone repo_name https://github.com/jakeb-k/php-task.git`and place the folder within the htdocs folder if using XAMPP. 
 2. Start MySQL server or XAMPP MySQL option
 3. Run the script with `php user-upload.php`
 4. Will return the invalid email error
