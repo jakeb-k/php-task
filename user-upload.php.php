@@ -7,13 +7,13 @@ $username = $options['u'] ?? "root";
 $password = $options['p'] ?? "";
 $host = $options['h'] ?? "localhost";  
 
-#main(); 
 
-input_validation(); 
+create_table(); 
+insert_values();  
 
 function input_validation(){
     $file = fopen("users.csv","r");
-
+    //skip header row 
     fgetcsv($file);
 
     while (($data = fgetcsv($file)) !== FALSE)
@@ -23,23 +23,28 @@ function input_validation(){
         $x = $data[2]; 
         $email =  email_check($x);
         if($email == '') { 
-            echo fwrite(STDOUT, "Error: This is not a valid email ".$data[2]);
-            die(); 
+            echo fwrite(STDOUT, "\nError: This is not a valid email ".$data[2]);
+            die(1); 
+        } else {
             $email = str_replace("'","''",$email); 
             $valuesArr[] = "('$name','$surname','$email'),"; 
         }
     }
+
+    //duplicate check to ensure emails are unique 
     $findDuplicate = array_diff_assoc( 
-        $data,  
-        array_unique($data) 
+        $valuesArr,  
+        array_unique($valuesArr) 
     ); 
 
     if($findDuplicate) {
-        echo fwrite(STDOUT, "Error: There are duplicate emails within the spreadsheet".$findDuplicate);
+        $findDuplicate = implode(',',$findDuplicate); 
+        echo fwrite(STDOUT, "\nError: There is a duplicate entry within the spreadsheet ".$findDuplicate);
         die(1); 
     }
-    return $data;  
+    return $valuesArr;  
 }
+
 function insert_values(){
     $insert_query = "INSERT INTO users (name, surname, email) VALUES";
 
@@ -50,13 +55,12 @@ function insert_values(){
     
     $insert_query[strlen($insert_query)-1] = ';'; 
   
+
     $con = mysqli_connect('localhost','root','', 'task_db'); 
 
     if($con->connect_error) {
         die("Connection failed: ".$con->connect_error );
     }
-     
-
      //try the query and output if success or not
      try {
         $success = $con->query($insert_query); 
@@ -69,7 +73,6 @@ function insert_values(){
     catch (Exception $e) {
         echo "Error : ". $e; 
     }
-
     //close the connection
     $con->close(); 
 }
@@ -131,6 +134,7 @@ function name_check($name) {
 function email_check($email) {
     $email = filter_var($email, FILTER_SANITIZE_EMAIL);
     $email = filter_var($email, FILTER_VALIDATE_EMAIL); 
+    $email = strtolower($email); 
     return $email; 
 }
 
