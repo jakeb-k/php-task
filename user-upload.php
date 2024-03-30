@@ -33,6 +33,7 @@ function help(){
     • -u - MySQL username
     • -p - MySQL password
     • -h - MySQL host
+    • -n - MySQL schema name
     • --help - which will output the above list of directives with details.\n"; 
 }
 
